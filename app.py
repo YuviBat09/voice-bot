@@ -59,28 +59,60 @@ def answer_call():
     ncco = [
         {
             "action": "talk",
-            "text": "Hello! I'm your AI assistant. Please tell me how I can help you today.",
-            "voiceName": "Amy",
-            "bargeIn": True
+            "text": "Hello! I'm your AI assistant. Press 1 to test me, or press 2 for help.",
+            "voiceName": "Amy"
         },
         {
             "action": "input",
-            "eventUrl": [f"{get_base_url()}/webhooks/speech"],
-            "type": ["speech"],
-            "speech": {
-                "endOnSilence": 3,
-                "language": "en-US",
-                "context": ["customer_service", "general_inquiry"],
-                "startTimeout": 10,
-                "maxDuration": 60
+            "eventUrl": [f"{get_base_url()}/webhooks/dtmf"],
+            "type": ["dtmf"],
+            "dtmf": {
+                "timeOut": 10,
+                "maxDigits": 1
             }
         }
     ]
     
     return jsonify(ncco)
 
-@app.route("/webhooks/speech", methods=["POST"])
-def handle_speech():
+@app.route("/webhooks/dtmf", methods=["POST"])
+def handle_dtmf():
+    """Process keypad input and generate AI response"""
+    data = request.get_json()
+    call_uuid = data.get('uuid')
+    dtmf_input = data.get('dtmf', '')
+    
+    print(f"User pressed: {dtmf_input}")
+    
+    # Convert keypad press to text
+    if dtmf_input == '1':
+        user_message = "Hello, test my AI capabilities"
+    elif dtmf_input == '2':
+        user_message = "What can you help me with?"
+    else:
+        user_message = "I pressed a key on my phone"
+    
+    # Get AI response
+    ai_response = get_ai_response(call_uuid, user_message)
+    
+    ncco = [
+        {
+            "action": "talk",
+            "text": ai_response + " Press 1 to continue testing, or hang up to end.",
+            "voiceName": "Amy"
+        },
+        {
+            "action": "input",
+            "eventUrl": [f"{get_base_url()}/webhooks/dtmf"],
+            "type": ["dtmf"],
+            "dtmf": {
+                "timeOut": 10,
+                "maxDigits": 1
+            }
+        }
+    ]
+    
+    return jsonify(ncco)
     """Process speech input and generate AI response"""
     data = request.get_json()
     call_uuid = data.get('uuid')
