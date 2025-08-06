@@ -52,6 +52,7 @@ def answer_call():
     """Handle incoming calls"""
     call_uuid = request.args.get('uuid', 'unknown')
     print(f"Incoming call: {call_uuid}")
+    logger.info(f"Incoming call: {call_uuid}")
     
     # Initialize conversation for this call
     conversations[call_uuid] = []
@@ -68,21 +69,27 @@ def answer_call():
             "type": ["dtmf"],
             "dtmf": {
                 "timeOut": 10,
-                "maxDigits": 1
+                "maxDigits": 1,
+                "submitOnHash": False
             }
         }
     ]
     
+    logger.info(f"Sending NCCO: {ncco}")
     return jsonify(ncco)
 
 @app.route("/webhooks/dtmf", methods=["POST"])
 def handle_dtmf():
     """Process keypad input and generate AI response"""
     data = request.get_json()
-    call_uuid = data.get('uuid')
+    logger.info(f"DTMF webhook received: {data}")
+    print(f"DTMF data: {data}")
+    
+    call_uuid = data.get('uuid', 'unknown')
     dtmf_input = data.get('dtmf', '')
     
     print(f"User pressed: {dtmf_input}")
+    logger.info(f"User pressed: {dtmf_input}")
     
     # Convert keypad press to text
     if dtmf_input == '1':
@@ -90,7 +97,7 @@ def handle_dtmf():
     elif dtmf_input == '2':
         user_message = "What can you help me with?"
     else:
-        user_message = "I pressed a key on my phone"
+        user_message = f"I pressed {dtmf_input} on my phone"
     
     # Get AI response
     ai_response = get_ai_response(call_uuid, user_message)
@@ -107,11 +114,13 @@ def handle_dtmf():
             "type": ["dtmf"],
             "dtmf": {
                 "timeOut": 10,
-                "maxDigits": 1
+                "maxDigits": 1,
+                "submitOnHash": False
             }
         }
     ]
     
+    logger.info(f"Sending AI response: {ai_response}")
     return jsonify(ncco)
     """Process speech input and generate AI response"""
     data = request.get_json()
@@ -181,7 +190,13 @@ def handle_dtmf():
 def handle_events():
     """Handle call events (started, completed, etc.)"""
     data = request.get_json()
+    logger.info(f"Event received: {data}")
     print(f"Event: {data}")
+    
+    # Check if this is actually a DTMF input disguised as an event
+    if data.get('dtmf'):
+        logger.info("DTMF found in events endpoint!")
+        return handle_dtmf_data(data)
     
     # Clean up conversation when call ends
     if data.get('status') == 'completed':
@@ -191,6 +206,32 @@ def handle_events():
             print(f"Cleaned up conversation for {call_uuid}")
     
     return "OK"
+
+def handle_dtmf_data(data):
+    """Handle DTMF data regardless of which endpoint it comes from"""
+    call_uuid = data.get('uuid', 'unknown')
+    dtmf_input = data.get('dtmf', '')
+    
+    logger.info(f"Processing DTMF: {dtmf_input} for call {call_uuid}")
+    
+    if dtmf_input == '1':
+        user_message = "Hello, test my AI capabilities"
+    elif dtmf_input == '2':
+        user_message = "What can you help me with?"
+    else:
+        user_message = f"I pressed {dtmf_input} on my phone"
+    
+    ai_response = get_ai_response(call_uuid, user_message)
+    
+    ncco = [
+        {
+            "action": "talk",
+            "text": ai_response,
+            "voiceName": "Amy"
+        }
+    ]
+    
+    return jsonify(ncco)
 
 def get_ai_response(call_uuid, user_message):
     """Generate AI response using OpenAI"""
