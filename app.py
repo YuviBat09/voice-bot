@@ -273,8 +273,12 @@ def get_ai_response(call_uuid, user_message):
         return "I'm sorry, I'm having trouble processing that right now. Could you try again?"
 
 def get_base_url():
-    """Get base URL for webhooks"""
-    return request.url_root.rstrip('/')
+    """Get base URL for webhooks - force HTTPS for production"""
+    if request.url_root.startswith('http://localhost') or request.url_root.startswith('http://127.0.0.1'):
+        return request.url_root.rstrip('/')
+    else:
+        # Force HTTPS for production deployments
+        return request.url_root.replace('http://', 'https://').rstrip('/')
 
 if __name__ == "__main__":
     print("Starting voice bot server...")
