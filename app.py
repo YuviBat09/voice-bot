@@ -4,27 +4,48 @@ import openai
 import os
 from dotenv import load_dotenv
 import json
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize Vonage client
-vonage_client = vonage.Client(
-    key=os.getenv('VONAGE_API_KEY'),
-    secret=os.getenv('VONAGE_API_SECRET')
-)
+# Initialize clients with error handling
+try:
+    vonage_client = vonage.Client(
+        key=os.getenv('VONAGE_API_KEY'),
+        secret=os.getenv('VONAGE_API_SECRET')
+    )
+    logger.info("Vonage client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Vonage client: {e}")
+    vonage_client = None
 
 # Initialize OpenAI
-openai.api_key = os.getenv('OPENAI_API_KEY')
+try:
+    openai.api_key = os.getenv('OPENAI_API_KEY')
+    logger.info("OpenAI API key set successfully")
+except Exception as e:
+    logger.error(f"Failed to set OpenAI API key: {e}")
 
-# Simple conversation memory (in production, use a database)
+# Simple conversation memory
 conversations = {}
 
 @app.route("/", methods=["GET"])
 def health_check():
-    return "Voice bot is running!"
+    """Health check endpoint"""
+    status = {
+        "status": "running",
+        "vonage_client": "initialized" if vonage_client else "failed",
+        "openai_api": "set" if openai.api_key else "missing"
+    }
+    logger.info(f"Health check: {status}")
+    return jsonify(status)
 
 @app.route("/webhooks/answer", methods=["GET", "POST"])
 def answer_call():
@@ -182,6 +203,8 @@ if __name__ == "__main__":
     print("1. Set up your .env file with API keys")
     print("2. Configure webhooks in Vonage dashboard")
     
-    # Use Railway's port or default to 5000
+    # Use Railway's PORT environment variable
     port = int(os.environ.get('PORT', 5000))
+    print(f"Starting server on port {port}")
+    
     app.run(host='0.0.0.0', port=port, debug=False)
