@@ -250,6 +250,8 @@ def get_ai_response(call_uuid, user_message):
         
         messages = [{"role": "system", "content": system_prompt}] + conversations[call_uuid]
         
+        logger.info(f"Sending to OpenAI: {messages}")
+        
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
@@ -258,6 +260,7 @@ def get_ai_response(call_uuid, user_message):
         )
         
         ai_message = response.choices[0].message.content
+        logger.info(f"OpenAI response: {ai_message}")
         
         # Add AI response to conversation history
         conversations[call_uuid].append({"role": "assistant", "content": ai_message})
@@ -268,9 +271,22 @@ def get_ai_response(call_uuid, user_message):
         
         return ai_message
         
+    except openai.error.AuthenticationError as e:
+        logger.error(f"OpenAI Authentication Error: {e}")
+        return "I'm having trouble with my API authentication. Please check my configuration."
+        
+    except openai.error.RateLimitError as e:
+        logger.error(f"OpenAI Rate Limit Error: {e}")
+        return "I'm experiencing high demand right now. Please try again in a moment."
+        
+    except openai.error.APIError as e:
+        logger.error(f"OpenAI API Error: {e}")
+        return "I'm having trouble connecting to my AI service. Please try again."
+        
     except Exception as e:
-        print(f"Error getting AI response: {e}")
-        return "I'm sorry, I'm having trouble processing that right now. Could you try again?"
+        logger.error(f"Unexpected error getting AI response: {e}")
+        print(f"Full error details: {type(e).__name__}: {str(e)}")
+        return f"I encountered an unexpected error: {str(e)[:100]}"
 
 def get_base_url():
     """Get base URL for webhooks - force HTTPS for production"""
