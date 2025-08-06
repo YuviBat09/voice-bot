@@ -66,11 +66,13 @@ def answer_call():
         {
             "action": "input",
             "eventUrl": [f"{get_base_url()}/webhooks/speech"],
+            "type": ["speech"],
             "speech": {
-                "uuid": [call_uuid],
-                "endOnSilence": 2,
+                "endOnSilence": 3,
                 "language": "en-US",
-                "context": ["customer_service", "general_inquiry"]
+                "context": ["customer_service", "general_inquiry"],
+                "startTimeout": 10,
+                "maxDuration": 60
             }
         }
     ]
@@ -97,10 +99,12 @@ def handle_speech():
             {
                 "action": "input",
                 "eventUrl": [f"{get_base_url()}/webhooks/speech"],
+                "type": ["speech"],
                 "speech": {
-                    "uuid": [call_uuid],
-                    "endOnSilence": 2,
-                    "language": "en-US"
+                    "endOnSilence": 3,
+                    "language": "en-US",
+                    "startTimeout": 10,
+                    "maxDuration": 60
                 }
             }
         ]
@@ -129,10 +133,12 @@ def handle_speech():
             {
                 "action": "input",
                 "eventUrl": [f"{get_base_url()}/webhooks/speech"],
+                "type": ["speech"],
                 "speech": {
-                    "uuid": [call_uuid],
-                    "endOnSilence": 2,
-                    "language": "en-US"
+                    "endOnSilence": 3,
+                    "language": "en-US",
+                    "startTimeout": 10,
+                    "maxDuration": 60
                 }
             }
         ]
