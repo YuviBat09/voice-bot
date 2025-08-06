@@ -1,0 +1,1 @@
+web: gunicorn app:app --bin d 0.0.0.0:$PORT
